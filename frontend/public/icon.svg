@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AI Hukum Icon">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="6" y="6" width="116" height="116" rx="22" fill="#0b1020"/>
+  <rect x="6" y="6" width="116" height="116" rx="22" fill="url(#g)" opacity="0.10"/>
+  <!-- mini scale -->
+  <path d="M64 28v40M40 48h48" stroke="url(#g)" stroke-width="6" stroke-linecap="round" fill="none" filter="url(#glow)"/>
+  <path d="M46 48c3 7 8 12 18 12s15-5 18-12" stroke="url(#g)" stroke-width="3.5" fill="none"/>
+  <path d="M56 88h24" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="64" cy="24" r="5" fill="url(#g)"/>
+</svg>
+
+

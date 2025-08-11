@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useLanguage } from "./LanguageProvider";
 
 function getApiBase(): string {
   if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_BASE) {
@@ -10,6 +11,7 @@ function getApiBase(): string {
 }
 
 export default function UploadForm() {
+  const { t, lang: currentLang, setLang } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [manualText, setManualText] = useState<string>("");
   const [sessionId, setSessionId] = useState<string>("");
@@ -17,6 +19,7 @@ export default function UploadForm() {
   const [question, setQuestion] = useState<string>("");
   const [answer, setAnswer] = useState<string>("");
   const [confidential, setConfidential] = useState<boolean>(false);
+  const [preset, setPreset] = useState<string>("summary");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -30,10 +33,13 @@ export default function UploadForm() {
     setSessionId("");
     setLoading(true);
     try {
-      const form = new FormData();
-      if (file) form.append("file", file);
-      if (manualText.trim().length > 0) form.append("text", manualText.trim());
-      if (confidential) form.append("confidential", "1");
+      // Build upload form for /upload (expects `file`)
+      const uploadForm = new FormData();
+      if (file) uploadForm.append("file", file);
+      if (manualText.trim().length > 0) uploadForm.append("text", manualText.trim());
+      if (confidential) uploadForm.append("confidential", "1");
+      uploadForm.append("preset", preset);
+      uploadForm.append("lang", currentLang);
 
       if (!file && manualText.trim().length === 0) {
         setError("Harap unggah file atau isi teks.");
@@ -43,7 +49,7 @@ export default function UploadForm() {
 
       const res = await fetch(`${apiBase}/upload`, {
         method: "POST",
-        body: form,
+        body: uploadForm,
       });
       if (!res.ok) {
         const t = await res.text();
@@ -56,7 +62,7 @@ export default function UploadForm() {
       const sumRes = await fetch(`${apiBase}/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: id }),
+        body: JSON.stringify({ session_id: id, lang: currentLang }),
       });
       if (!sumRes.ok) {
         const t = await sumRes.text();
@@ -66,9 +72,16 @@ export default function UploadForm() {
       setSummary(sumData.summary || "");
       // Optional extended analyze call (Level 2)
       try {
+        // Separate form for /analyze (expects `files`)
+        const analyzeForm = new FormData();
+        if (file) analyzeForm.append("files", file);
+        if (manualText.trim().length > 0) analyzeForm.append("text", manualText.trim());
+        if (confidential) analyzeForm.append("confidential", "1");
+        analyzeForm.append("preset", preset);
+        analyzeForm.append("lang", currentLang);
         const analyzeRes = await fetch(`${apiBase}/analyze`, {
           method: "POST",
-          body: form,
+          body: analyzeForm,
         });
         if (analyzeRes.ok) {
           const analyzeData = await analyzeRes.json();
@@ -101,7 +114,7 @@ export default function UploadForm() {
       const res = await fetch(`${apiBase}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, question: question.trim() }),
+        body: JSON.stringify({ session_id: sessionId, question: question.trim(), lang: currentLang }),
       });
       if (!res.ok) {
         const t = await res.text();
@@ -119,7 +132,7 @@ export default function UploadForm() {
   return (
     <div className="space-y-6">
       <form onSubmit={handleUpload} className="space-y-4 bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-semibold">Upload Dokumen</h2>
+        <h2 className="text-lg font-semibold">{t('upload.title')}</h2>
         <input
           type="file"
           accept=".pdf,.txt,application/pdf,text/plain"
@@ -127,25 +140,43 @@ export default function UploadForm() {
           className="block w-full text-sm text-gray-700"
         />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Atau isi teks manual</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('upload.text')}</label>
           <textarea
             value={manualText}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setManualText(e.target.value)}
             rows={5}
             className="w-full border rounded p-2"
-            placeholder="Tempelkan isi dokumen di sini..."
+            placeholder={t('upload.placeholder')}
           />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('upload.preset')}</label>
+            <select value={preset} onChange={(e) => setPreset(e.target.value)} className="w-full border rounded p-2 text-sm">
+              <option value="summary">{t('preset.summary')}</option>
+              <option value="risk">{t('preset.risk')}</option>
+              <option value="clauses">{t('preset.clauses')}</option>
+              <option value="timeline">{t('preset.timeline')}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('upload.lang')}</label>
+            <select value={currentLang} onChange={(e) => setLang(e.target.value as any)} className="w-full border rounded p-2 text-sm">
+              <option value="id">Indonesia</option>
+              <option value="en">English</option>
+            </select>
+          </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={confidential} onChange={(e) => setConfidential(e.target.checked)} />
-          Mode rahasia (tidak simpan chat)
+          {t('upload.conf')}
         </label>
         <button
           type="submit"
           disabled={loading}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
         >
-          {loading ? "Memproses..." : "Unggah & Ringkas"}
+          {loading ? "Processing..." : t('upload.submit')}
         </button>
       </form>
 
@@ -155,18 +186,18 @@ export default function UploadForm() {
 
       {summary && (
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Ringkasan</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('summary.title')}</h3>
           <pre className="whitespace-pre-wrap text-sm">{summary}</pre>
         </div>
       )}
 
       <form onSubmit={handleAsk} className="space-y-3 bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-semibold">Tanya Jawab</h2>
+        <h2 className="text-lg font-semibold">{t('qna.title')}</h2>
         <input
           type="text"
           value={question}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setQuestion(e.target.value)}
-          placeholder="Tanyakan sesuatu tentang dokumen..."
+          placeholder={t('qna.placeholder')}
           className="w-full border rounded p-2"
         />
         <button
@@ -174,11 +205,11 @@ export default function UploadForm() {
           disabled={loading}
           className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-60"
         >
-          {loading ? "Mengambil jawaban..." : "Tanya"}
+          {loading ? "Loading..." : t('qna.submit')}
         </button>
         {answer && (
           <div className="pt-2">
-            <h4 className="font-medium">Jawaban:</h4>
+            <h4 className="font-medium">{t('answer.title')}</h4>
             <pre className="whitespace-pre-wrap text-sm">{answer}</pre>
           </div>
         )}
