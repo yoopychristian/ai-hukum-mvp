@@ -1,0 +1,21 @@
+# Environment
+.env
+frontend/.env.local
+backend/.env
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/.turbo/
+frontend/.vercel/
+
+# Python
+backend/.venv/
+backend/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Misc
+.DS_Store
